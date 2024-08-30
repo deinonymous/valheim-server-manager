@@ -1,0 +1,15 @@
+server-manager/node_modules
+server-manager/.env
+server-manager/config.json
+docker
+linux64
+steamapps
+valheim_server_Data
+docker_start_server.sh
+start_server_xterm.sh
+start_server.sh
+steam_appid.txt
+steamclient.so
+UnityPlayer.so
+Valheim Dedicated Server Manual.pdf
+valheim_server.x86_64
