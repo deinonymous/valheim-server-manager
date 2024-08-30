@@ -10,6 +10,10 @@ const os = require('os');
 
 dotenv.config();
 const DEV = process.env.NODE_ENV === 'development';
+const WORLDS_DIR = process.env.WORLDS_DIR;
+const PROXY_ADDRESS = DEV
+  ? 'http://localhost:8081'
+  : 'https://vm-manager-server-iadd624u5a-uc.a.run.app';
 
 const getIPAddress = () => {
   if (DEV) {
@@ -40,14 +44,14 @@ const serverState = {
   udpPackets: 0
 };
 
-const serverSettings = JSON.parse(
-  fs.readFileSync('/home/valheim/server-manager/config.json')
-);
+const serverSettings = JSON.parse(fs.readFileSync('./config.json'));
+
+const GAME_SERVER_PATH = fs.realpathSync('../');
 
 const commands = () => ({
   start:
     'sudo tmux new -d -s valheim_server ' +
-    `"cd /home/valheim && ./start.sh ${serverSettings.name} ${serverSettings.worldName} \\"${serverSettings.password}\\""`,
+    `"cd ${GAME_SERVER_PATH} && ./start.sh ${serverSettings.name} ${serverSettings.worldName} \\"${serverSettings.password}\\""`,
   stop: 'sudo tmux send-keys -t valheim_server C-c',
   checkRunning: 'sudo tmux list-sessions | grep valheim_server',
   checkConnections: "nstat | awk '/UdpInDatagrams/{print $2}' | tr -d ' '",
@@ -67,8 +71,7 @@ const runCommand = (cmd) => {
 };
 
 function getWorldNames() {
-  const worldSaveDirectory =
-    '/root/.config/unity3d/IronGate/Valheim/worlds_local';
+  const worldSaveDirectory = WORLDS_DIR;
   let worldNames = [];
 
   const fileIsWorldSave = (file) => {
@@ -128,25 +131,20 @@ const requestBackup = async () => {
   }
   const exts = ['.db', '.fwl'];
   for (const ext of exts) {
-    const filePath = path.join(
-      '/root/.config/unity3d/IronGate/Valheim/worlds_local',
-      `${serverSettings.worldName}${ext}`
-    );
+    const filePath = path.join(WORLDS_DIR, `${serverSettings.worldName}${ext}`);
     if (fs.existsSync(filePath)) {
       // Create a FormData object to hold the file
       const form = new FormData();
       form.append('file', fs.createReadStream(filePath));
 
       // Send the file to the target server
-      const targetUrl =
-        'https://vm-manager-server-iadd624u5a-uc.a.run.app/server/worlds/backup';
-      const response = await axios.post(targetUrl, form, {
+      const targetUrl = PROXY_ADDRESS + '/server/worlds/backup';
+      await axios.post(targetUrl, form, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'X-Api-Key': process.env.API_KEY
         }
       });
-      console.log(response.data);
     }
   }
 };
@@ -158,16 +156,13 @@ const stopVmByRequest = async () => {
     } catch (e) {
       console.error('Error backing up the world:', e);
     }
-    const response = await fetch(
-      'https://vm-manager-server-iadd624u5a-uc.a.run.app/vm/stop',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Api-Key': process.env.API_KEY
-        }
+    await fetch(PROXY_ADDRESS + '/vm/stop', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': process.env.API_KEY
       }
-    );
+    });
   } catch (error) {
     console.error('Error stopping the VM:', error);
   }
@@ -216,10 +211,7 @@ const updateSettings = (settings) => {
     serverSettings[key] = settings[key];
   });
   serverSettings.name = settings.serverName;
-  fs.writeFileSync(
-    '/home/valheim/server-manager/config.json',
-    JSON.stringify(serverSettings, null, 2)
-  );
+  fs.writeFileSync('./config.json', JSON.stringify(serverSettings, null, 2));
 };
 
 app.post('/start', async (req, res) => {
