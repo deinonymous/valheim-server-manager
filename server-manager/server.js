@@ -30,6 +30,8 @@ const getIPAddress = () => {
   return '127.0.0.1'; // fallback to localhost if no external IP found
 };
 
+const useSudo = DEV ? '' : 'sudo ';
+
 const app = express();
 const port = 3000;
 
@@ -50,12 +52,12 @@ const GAME_SERVER_PATH = fs.realpathSync('../');
 
 const commands = () => ({
   start:
-    'sudo tmux new -d -s valheim_server ' +
+    `${useSudo}tmux new -d -s valheim_server ` +
     `"cd ${GAME_SERVER_PATH} && ./start.sh ${serverSettings.name} ${serverSettings.worldName} \\"${serverSettings.password}\\""`,
-  stop: 'sudo tmux send-keys -t valheim_server C-c',
-  checkRunning: 'sudo tmux list-sessions | grep valheim_server',
+  stop: `${useSudo}tmux send-keys -t valheim_server C-c`,
+  checkRunning: `${useSudo}tmux list-sessions | grep valheim_server`,
   checkConnections: "nstat | awk '/UdpInDatagrams/{print $2}' | tr -d ' '",
-  showServerOutput: 'sudo tmux capture-pane -p -S 0 -E 50 -t valheim_server'
+  showServerOutput: `${useSudo}tmux capture-pane -p -S 0 -E 50 -t valheim_server`
 });
 
 const runCommand = (cmd) => {
