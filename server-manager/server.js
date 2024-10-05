@@ -57,7 +57,8 @@ const commands = () => ({
   stop: `${useSudo}tmux send-keys -t valheim_server C-c`,
   checkRunning: `${useSudo}tmux list-sessions | grep valheim_server`,
   checkConnections: "nstat | awk '/UdpInDatagrams/{print $2}' | tr -d ' '",
-  showServerOutput: `${useSudo}tmux capture-pane -p -S 0 -E 50 -t valheim_server`
+  showServerOutput: `${useSudo}tmux capture-pane -p -S 0 -E 50 -t valheim_server`,
+  backup: `${useSudo} gsutil cp ${WORLDS_DIR}/${serverSettings.worldName}.db gs://valheim-server_world-backups/ && gsutil cp ${WORLDS_DIR}/${serverSettings.worldName}.fwl gs://valheim-server_world-backups/`
 });
 
 const runCommand = (cmd) => {
@@ -131,24 +132,7 @@ const requestBackup = async () => {
   if (!serverSettings.worldName) {
     console.error('Error backing up the world: No world name provided.');
   }
-  const exts = ['.db', '.fwl'];
-  for (const ext of exts) {
-    const filePath = path.join(WORLDS_DIR, `${serverSettings.worldName}${ext}`);
-    if (fs.existsSync(filePath)) {
-      // Create a FormData object to hold the file
-      const form = new FormData();
-      form.append('file', fs.createReadStream(filePath));
-
-      // Send the file to the target server
-      const targetUrl = PROXY_ADDRESS + '/server/worlds/backup';
-      await axios.post(targetUrl, form, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-Api-Key': process.env.API_KEY
-        }
-      });
-    }
-  }
+  await runCommand(commands().backup)
 };
 
 const stopVmByRequest = async () => {
