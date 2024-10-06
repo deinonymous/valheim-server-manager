@@ -1,7 +1,4 @@
-const axios = require('axios');
-const FormData = require('form-data');
 const fs = require('fs');
-const path = require('path');
 const cors = require('cors');
 const express = require('express');
 const { exec } = require('child_process');
@@ -58,7 +55,7 @@ const commands = () => ({
   checkRunning: `${useSudo}tmux list-sessions | grep valheim_server`,
   checkConnections: "nstat | awk '/UdpInDatagrams/{print $2}' | tr -d ' '",
   showServerOutput: `${useSudo}tmux capture-pane -p -S 0 -E 50 -t valheim_server`,
-  backup: `${useSudo} gsutil cp ${WORLDS_DIR}/${serverSettings.worldName}.db gs://valheim-server_world-backups/ && gsutil cp ${WORLDS_DIR}/${serverSettings.worldName}.fwl gs://valheim-server_world-backups/`
+  backup: `${useSudo}gsutil cp ${WORLDS_DIR}/${serverSettings.worldName}.db gs://valheim-server_world-backups/ && ${useSudo}gsutil cp ${WORLDS_DIR}/${serverSettings.worldName}.fwl gs://valheim-server_world-backups/`
 });
 
 const runCommand = (cmd) => {
@@ -132,7 +129,7 @@ const requestBackup = async () => {
   if (!serverSettings.worldName) {
     console.error('Error backing up the world: No world name provided.');
   }
-  await runCommand(commands().backup)
+  await runCommand(commands().backup);
 };
 
 const stopVmByRequest = async () => {
@@ -224,10 +221,9 @@ app.get('/status', async (req, res) => {
   try {
     await check();
   } catch (e) {
-    console.error(e);
+    res.status(500).send('Error checking the server status.');
+    return;
   }
-  console.log('serverState:', serverState);
-  console.log('serverSettings:', serverSettings);
   res.status(200).send({ serverState, serverSettings });
 });
 
