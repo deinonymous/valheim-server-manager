@@ -134,18 +134,27 @@ const requestBackup = async () => {
 
 const stopVmByRequest = async () => {
   try {
-    try {
-      await requestBackup();
-    } catch (e) {
-      console.error('Error backing up the world:', e);
-    }
-    await fetch(PROXY_ADDRESS + '/vm/stop', {
+    await fetch(PROXY_ADDRESS + '/server/stop', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Api-Key': process.env.API_KEY
       }
     });
+    setTimeout(async () => {
+      try {
+        await requestBackup();
+      } catch (e) {
+        console.error('Error backing up the world:', e);
+      }
+      await fetch(PROXY_ADDRESS + '/vm/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': process.env.API_KEY
+        }
+      });
+    }, 2000);
   } catch (error) {
     console.error('Error stopping the VM:', error);
   }
